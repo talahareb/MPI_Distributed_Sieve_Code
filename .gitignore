@@ -1,0 +1,14 @@
+# Compiled outputs
+pipelined_sieve
+pipelined_sieve.exe
+*.o
+*.out
+
+# Python test byproducts
+__pycache__/
+*.pyc
+
+# Local editor and system files
+.vscode/
+.idea/
+.DS_Store
