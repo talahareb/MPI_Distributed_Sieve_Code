@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="650" viewBox="0 0 1600 650" role="img" aria-labelledby="title desc">
+<title id="title">MPI Pipelined Prime Sieve — four-rank example</title>
+<desc id="desc">Rank zero sends numbers two through N to Rank 1. Rank 1 removes multiples of 2 and forwards survivors to Rank 2. Rank 2 removes multiples of 3 and forwards survivors to Rank 3. Rank 3 verifies survivors using its local prime list. Worker ranks collectively return primes to Rank zero using MPI Gather and Gatherv, where results are sorted and displayed.</desc>
+<defs>
+ <marker id="arrow" markerWidth="11" markerHeight="11" refX="9" refY="5.5" orient="auto"><path d="M1 1 L10 5.5 L1 10" fill="none" stroke="#5262b7" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></marker>
+ <marker id="return-arrow" markerWidth="11" markerHeight="11" refX="9" refY="5.5" orient="auto"><path d="M1 1 L10 5.5 L1 10" fill="none" stroke="#008e88" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></marker>
+ <style><![CDATA[
+ text {font-family: 'DejaVu Sans', Arial, sans-serif; fill: #17253d;}
+ .tiny {font-size:19px; fill:#64748b;}
+ .small {font-size:22px; fill:#5b6881;}
+ .main {font-size:28px;font-weight:700;}
+ .label {font-size:21px;font-weight:700;letter-spacing:1.1px;}
+ .desc {font-size:23px;}
+ .chip {font-size:18px;font-weight:700;}
+ ]]></style>
+ </defs>
+ <rect x="1" y="1" width="1598" height="648" rx="25" fill="#f9fbff" stroke="#e5eaf3" stroke-width="2"/>
+ <text x="53" y="72" font-size="37" font-weight="800">MPI Pipelined Prime Sieve</text>
+ <text x="53" y="111" class="small">Example: 4 MPI ranks · one producer, two fixed filter stages, one final verification stage</text>
+ <rect x="1289" y="51" width="260" height="46" rx="23" fill="#edf1ff"/>
+ <text x="1419" y="81" fill="#4758af" font-size="20" font-weight="700" text-anchor="middle">C11 + MPI</text>
+ <!-- rank cards -->
+ <rect x="50" y="162" width="330" height="229" rx="21" fill="#ffffff" stroke="#c7d7f8" stroke-width="2"/>
+ <rect x="50" y="162" width="330" height="12" rx="6" fill="#4874d1"/>
+ <text x="79" y="216" class="label" fill="#4874d1">RANK 0</text>
+ <text x="79" y="259" class="main">Producer</text>
+ <text x="79" y="305" class="desc">Send candidate integers</text>
+ <text x="79" y="341" class="desc">2, 3, 4, ... , N</text>
+ <rect x="445" y="162" width="330" height="229" rx="21" fill="#ffffff" stroke="#dad0f6" stroke-width="2"/>
+ <rect x="445" y="162" width="330" height="12" rx="6" fill="#8265ce"/>
+ <text x="474" y="216" class="label" fill="#8265ce">RANK 1</text>
+ <text x="474" y="259" class="main">Filter stage</text>
+ <text x="474" y="305" class="desc">Keep prime 2</text>
+ <text x="474" y="341" class="desc">Discard multiples of 2</text>
+ <rect x="840" y="162" width="330" height="229" rx="21" fill="#ffffff" stroke="#dad0f6" stroke-width="2"/>
+ <rect x="840" y="162" width="330" height="12" rx="6" fill="#8265ce"/>
+ <text x="869" y="216" class="label" fill="#8265ce">RANK 2</text>
+ <text x="869" y="259" class="main">Filter stage</text>
+ <text x="869" y="305" class="desc">Keep prime 3</text>
+ <text x="869" y="341" class="desc">Discard multiples of 3</text>
+ <rect x="1235" y="162" width="315" height="229" rx="21" fill="#ffffff" stroke="#a9dace" stroke-width="2"/>
+ <rect x="1235" y="162" width="315" height="12" rx="6" fill="#18a495"/>
+ <text x="1264" y="216" class="label" fill="#0e9586">RANK 3 · FINAL</text>
+ <text x="1264" y="259" class="main">Verify survivors</text>
+ <text x="1264" y="305" class="desc">Check against a</text>
+ <text x="1264" y="341" class="desc">growing local prime list</text>
+ <!-- pipeline arrows -->
+ <path d="M381 278 H434" stroke="#5262b7" stroke-width="3.4" fill="none" marker-end="url(#arrow)"/>
+ <path d="M776 278 H829" stroke="#5262b7" stroke-width="3.4" fill="none" marker-end="url(#arrow)"/>
+ <path d="M1171 278 H1224" stroke="#5262b7" stroke-width="3.4" fill="none" marker-end="url(#arrow)"/>
+ <text x="53" y="436" class="tiny">A -1 end marker passes downstream to terminate the pipeline.</text>
+ <!-- collection bus -->
+ <path d="M610 393 V484 M1005 393 V484 M1392 393 V484 M610 484 H1392 M1005 484 V516" stroke="#008e88" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+ <circle cx="610" cy="484" r="6" fill="#008e88"/>
+ <circle cx="1005" cy="484" r="6" fill="#008e88"/>
+ <circle cx="1392" cy="484" r="6" fill="#008e88"/>
+ <path d="M1005 504 V516" stroke="#008e88" stroke-width="3" marker-end="url(#return-arrow)"/>
+ <!-- gather and display -->
+ <rect x="449" y="531" width="1101" height="76" rx="17" fill="#e8f7f5" stroke="#9cd8d1" stroke-width="2"/>
+ <text x="999" y="563" font-size="26" font-weight="750" text-anchor="middle" fill="#087b70">Collect primes from all workers</text>
+ <text x="999" y="593" font-size="21" text-anchor="middle" fill="#087b70">MPI_Gather + MPI_Gatherv</text>
+ <path d="M449 569 H393" stroke="#008e88" stroke-width="3.4" fill="none" marker-end="url(#return-arrow)"/>
+ <rect x="50" y="531" width="330" height="76" rx="17" fill="#eef3fd" stroke="#c7d7f8" stroke-width="2"/>
+ <text x="215" y="563" font-size="25" font-weight="750" text-anchor="middle" fill="#315fbe">Rank 0 · Results</text>
+ <text x="215" y="591" font-size="20" text-anchor="middle" fill="#315fbe">Sort · count · display</text>
+ </svg>
