@@ -1,84 +1,77 @@
-# MPI Pipelined Prime Sieve (C)
+# MPI Pipelined Prime Sieve
 
-An educational **parallel-computing project** that uses the Message Passing Interface (MPI) to process prime-number candidates through a pipeline of communicating processes. The goal is to demonstrate **interprocess communication, filtering stages, synchronized result collection, and parallel-program correctness** in C.
+**A distributed prime-number sieve written in C using MPI.** This project demonstrates how a stream of candidate numbers can move through cooperating processes, with each stage filtering values and the results collected back at the producer.
 
-## How it works
+**Tech stack:** C11 · MPI · Make · Python 3 (optional tests)
 
-1. **Rank 0 — producer:** sends each integer from `2` through the requested limit to the first worker using `MPI_Send`.
-2. **Intermediate ranks — filters:** each stage keeps the first prime number it receives and filters out multiples of that prime before sending surviving candidates downstream.
-3. **Final rank — completes the sieve:** checks remaining candidates against the additional prime numbers it discovers locally. This ensures correct results even when there are more primes than MPI worker processes.
-4. **Rank 0 — results:** collects all primes using `MPI_Gather` and `MPI_Gatherv`, sorts them, and displays the count and values.
+## Architecture
 
-A special end marker (`-1`) travels through the pipeline so each stage can finish cleanly.
+![MPI pipelined prime sieve architecture: producer, filter stages, final verification, and MPI result collection](docs/images/mpi-pipeline.png)
 
-```text
-Rank 0            Rank 1                 Rank 2               Final rank
-Producer  --->    filter multiples 2 --> filter multiples 3 --> verify survivors
-   ^                (prime 2)              (prime 3)            (other primes)
-   |                      |                    |                      |
-   +----------------------+- MPI_Gatherv ------+----------------------+
-```
+*Illustration for `mpirun -np 4`: one producer and three worker ranks. Other process counts create different numbers of filtering stages.*
 
-The first primes assigned to intermediate stages depend on the number of processes. The last stage uses a growing local prime list to finish the calculation.
+The sieve follows four steps:
 
-## Technology
+1. **Produce — Rank 0:** Send candidate integers from `2` through the input limit to the first worker with `MPI_Send`.
+2. **Filter — Intermediate ranks:** Each worker retains the first prime it receives, removes its multiples, and forwards surviving candidates to the next rank.
+3. **Verify — Final rank:** Use a growing local list of primes to check candidates that pass through the earlier filters. This allows the program to find more primes than there are worker processes.
+4. **Collect — Rank 0:** Use `MPI_Gather` and `MPI_Gatherv` to collect the primes, then sort and display them.
 
-- **C11** for the implementation
-- **MPI** (`MPI_Send`, `MPI_Recv`, `MPI_Gather`, `MPI_Gatherv`, `MPI_Barrier`) for distributed communication and synchronization
-- **Python 3**, optionally, for the integration-check script
-
-## Repository contents
-
-```text
-Pipelined_Sieve_Code/
-├── pipelined_sieve.c       # MPI prime-number pipeline
-├── Makefile                # Build target using mpicc
-├── tests/
-│   └── test_sieve.py       # Checks results with multiple MPI process counts
-├── .gitignore
-└── README.md
-```
+A sentinel value of `-1` marks the end of the stream and is forwarded through the pipeline for clean termination.
 
 ## Build and run
 
-Install an MPI implementation such as **Open MPI** or **MPICH** with its C compiler wrapper `mpicc` and launcher `mpirun` (or `mpiexec`).
+**Requirements:** An MPI implementation such as Open MPI or MPICH, with `mpicc` and `mpirun` (or `mpiexec`), plus a C compiler.
 
 ```bash
 make
 mpirun -np 4 ./pipelined_sieve 100
 ```
 
-Alternatively, compile directly:
+Or compile without the Makefile:
 
 ```bash
 mpicc -std=c11 -O2 -Wall -Wextra -Wpedantic pipelined_sieve.c -o pipelined_sieve
 mpirun -np 4 ./pipelined_sieve 100
 ```
 
-`-np 4` requests four MPI ranks: one producer and three filtering workers. The input limit must be an integer **at least 2**, and the program requires at least **two MPI ranks**.
+Here, `-np 4` starts four MPI ranks: **one producer and three workers**. The program requires at least two ranks and an integer limit of at least `2`.
 
-For a limit of `100`, the correct count is **25 primes**. The program prints all primes for limits up to `1000`; for larger limits it prints the first 20 and the overall count. Output timing includes the pipeline and gathering results.
+For an upper limit of **100**, there are **25 primes**. The program lists every prime when the limit is at most `1000`; for larger limits, it displays the first 20 and the total count. It also reports elapsed time for the computation and result collection.
+
+## Repository structure
+
+```text
+Pipelined_Sieve_Code/
+├── pipelined_sieve.c      # MPI sieve implementation
+├── Makefile               # Build with mpicc
+├── tests/
+│   └── test_sieve.py      # Integration checks across limits and rank counts
+├── docs/
+│   └── images/
+│       ├── mpi-pipeline.png
+│       └── mpi-pipeline.svg
+├── .gitignore
+└── README.md
+```
 
 ## Testing
 
-Once `make` succeeds, the optional integration test compares the program output with a small reference sieve over several limits and MPI process counts:
+An optional Python integration test compares the MPI program's output against a reference sieve using multiple input limits and process counts.
 
 ```bash
 python3 tests/test_sieve.py
 ```
 
-The test needs a working MPI installation. A successful compile and benchmark should be verified on your own machine or cluster; no cluster-scale performance results are claimed here.
+The test requires a working MPI installation.
 
-## Design decisions and limitations
+## Implementation notes
 
-- This is a **pipelined teaching example**, not a high-performance distributed sieve. It sends one integer per MPI message, which introduces communication overhead.
-- The final stage handles the remaining prime checks locally, so the computational work is **not evenly balanced** across ranks.
-- Adding MPI processes does **not** necessarily speed up computation. Run with multiple limits and ranks to evaluate actual performance.
-- The algorithm uses standard blocking MPI sends/receives and reports elapsed time after all primes have been collected.
-- This revised version replaces an earlier `w2.c` draft that had an extra final-rank receive loop and could hang after the end marker. The original draft remains in the older GitHub commit history.
+- **Streaming message passing:** Blocking `MPI_Send` and `MPI_Recv` connect the filtering stages.
+- **Coordinated result collection:** `MPI_Gather` and `MPI_Gatherv` return the workers' results to Rank 0.
+- **Correctness beyond the pipeline length:** The final worker verifies candidates against primes discovered locally, rather than assuming that every prime needs its own MPI rank.
+- **Performance trade-offs:** Sending one integer per message introduces communication overhead, and work is not equally distributed across workers. This implementation prioritizes the MPI pipeline design over speed.
 
-## Learning outcomes
+## Key concepts
 
-This project demonstrates message-passing fundamentals, a streaming filter pipeline, distributed termination handling, dynamic memory management, and the distinction between correct parallel algorithms and their real-world performance.
-
-**Keywords:** C · MPI · Parallel Computing · Distributed Algorithms · Prime Sieve · Message Passing
+**MPI · Parallel computing · Distributed algorithms · Pipelining · Prime sieve · Message passing · Process synchronization**
